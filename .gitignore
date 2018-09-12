@@ -1,0 +1,9 @@
+# R
+.Rhistory
+.Rproj.user/
+
+
+# notebooks
+.ipynb_checkpoints/
+
+data/
