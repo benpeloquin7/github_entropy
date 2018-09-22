@@ -7,22 +7,24 @@ https://developer.github.com/v3/activity/events/types/
 But this is the complete list from a publicly available dataset that doesn't
 require bigquery.
 
-[X] 'CommitCommentEvent',
-[] 'CreateEvent',
-[] 'DeleteEvent',
-[] 'ForkEvent',
-[] 'GollumEvent',
-[] 'IssueCommentEvent',
-[] 'IssuesEvent',
-[] 'MemberEvent',
-[] 'PublicEvent',
-[] 'PullRequestEvent',
-[] 'PullRequestReviewCommentEvent',
-[X] 'PushEvent',
-[] 'ReleaseEvent',
-[] 'WatchEvent'
+[X] CommitCommentEvent
+[X] CreateEvent
+[X] DeleteEvent  # No language data attached
+[X] ForkEvent
+[X] GollumEvent  # Not clear what these are, ignoring for now...
+[] IssueCommentEvent
+[X] IssuesEvent
+[] MemberEvent
+[] PublicEvent
+[X] PullRequestEvent # Note that there are multiple language data
+                     # possibe more in comments / commits? just pulling body now
+[] PullRequestReviewCommentEvent
+[X] PushEvent
+[] ReleaseEvent
+[] WatchEvent
 
 """
+
 
 class EventParser:
     def __init__(self, data, idx):
@@ -37,15 +39,19 @@ class EventParser:
         """Attributes to dict."""
         NotImplementedError()
 
+    def get_type(self):
+        return self.type
 
-class CommitCommentEvent(EventParser):
+
+class CommitCommentEventParser(EventParser):
     """Commit comment event.
 
     https://developer.github.com/v3/activity/events/types/#commitcommentevent
 
     """
+
     def __init__(self, data, idx):
-        super(CommitCommentEvent, self).__init__(data, idx)
+        super(CommitCommentEventParser, self).__init__(data, idx)
         self.type = "CommitCommentEvent"
 
     def parse(self):
@@ -66,60 +72,93 @@ class CommitCommentEvent(EventParser):
         return data
 
 
-class CreateEvent(EventParser):
+class CreateEventParser(EventParser):
     """Create event.
 
     https://developer.github.com/v3/activity/events/types/#createevent
 
     """
+
     def __init__(self, data, idx):
-        super(CreateEvent, self).__init__(data, idx)
+        super(CreateEventParser, self).__init__(data, idx)
         self.type = "CreateEvent"
 
     def parse(self):
-        pass
+        self.repo_id = self.data['repo']['id']
+        self.repo_name = self.data['repo']['name']
+        self.message = self.data['payload']['description']
+        self.created_at = self.data['created_at']
 
     def to_dict(self):
-        pass
+        data = []
+        d_global = {
+            "repo_id": self.repo_id,
+            "repo_name": self.repo_name,
+            "message": self.message,
+            "created_at": self.created_at
+        }
+        data.append(d_global)
+        return data
 
 
-class DeleteEvent(EventParser):
+class DeleteEventParser(EventParser):
     """Delete event.
 
     https://developer.github.com/v3/activity/events/types/#deleteevent
 
     """
     def __init__(self, data, idx):
-        super(DeleteEvent, self).__init__(data, idx)
+        super(DeleteEventParser, self).__init__(data, idx)
         self.type = "DeleteEvent"
 
     def parse(self):
-        pass
+        self.repo_id = self.data['repo']['id']
+        self.repo_name = self.data['repo']['name']
+        self.created_at = self.data['created_at']
 
     def to_dict(self):
-        pass
+        data = []
+        d_global = {
+            "repo_id": self.repo_id,
+            "repo_name": self.repo_name,
+            "message": "",
+            "created_at": self.created_at
+        }
+        data.append(d_global)
+        return data
 
 
-class ForkEvent(EventParser):
+class ForkEventParser(EventParser):
     """Fork event.
 
     https://developer.github.com/v3/activity/events/types/#forkevent
 
     """
     def __init__(self, data, idx):
-        super(ForkEvent, self).__init__(data, idx)
+        super(ForkEventParser, self).__init__(data, idx)
         self.type = "ForkEvent"
 
     def parse(self):
-        pass
+        self.repo_id = self.data['repo']['id']
+        self.repo_name = self.data['repo']['name']
+        self.message = self.data['payload']['forkee']['description']
+        self.created_at = self.data['created_at']
 
     def to_dict(self):
-        pass
+        data = []
+        d_global = {
+            "repo_id": self.repo_id,
+            "repo_name": self.repo_name,
+            "message": self.message,
+            "created_at": self.created_at
+        }
+        data.append(d_global)
+        return data
 
 
-class GollumEvent(EventParser):
+class GollumEventParser(EventParser):
     def __init__(self, data, idx):
-        super(GollumEvent, self).__init__(data, idx)
+        super(GollumEventParser, self).__init__(data, idx)
         self.type = "GollumEvent"
 
     def parse(self):
@@ -129,9 +168,9 @@ class GollumEvent(EventParser):
         pass
 
 
-class IssueCommentEvent(EventParser):
+class IssueCommentEventParser(EventParser):
     def __init__(self, data, idx):
-        super(IssueCommentEvent, self).__init__(data, idx)
+        super(IssueCommentEventParser, self).__init__(data, idx)
         self.type = "IssueCommentEvent"
 
     def parse(self):
@@ -141,21 +180,39 @@ class IssueCommentEvent(EventParser):
         pass
 
 
-class IssuesEvent(EventParser):
+class IssuesEventParser(EventParser):
+    """Issue event.
+
+    Note that this current eversion ignores the body text which has more
+    text than title. Instead we use `title` for the message.
+
+    """
+
     def __init__(self, data, idx):
-        super(IssuesEvent, self).__init__(data, idx)
+        super(IssuesEventParser, self).__init__(data, idx)
         self.type = "IssuesEvent"
 
     def parse(self):
-        pass
+        self.repo_id = self.data['repo']['id']
+        self.repo_name = self.data['repo']['name']
+        self.message = self.data['payload']['issue']['title']
+        self.created_at = self.data['created_at']
 
     def to_dict(self):
-        pass
+        data = []
+        d_global = {
+            "repo_id": self.repo_id,
+            "repo_name": self.repo_name,
+            "message": self.message,
+            "created_at": self.created_at
+        }
+        data.append(d_global)
+        return data
 
 
-class MemberEvent(EventParser):
+class MemberEventParser(EventParser):
     def __init__(self, data, idx):
-        super(MemberEvent, self).__init__(data, idx)
+        super(MemberEventParser, self).__init__(data, idx)
         self.type = "MemberEvent"
 
     def parse(self):
@@ -165,9 +222,9 @@ class MemberEvent(EventParser):
         pass
 
 
-class PublicEvent(EventParser):
+class PublicEventParser(EventParser):
     def __init__(self, data, idx):
-        super(PublicEvent, self).__init__(data, idx)
+        super(PublicEventParser, self).__init__(data, idx)
         self.type = "PublicEvent"
 
     def parse(self):
@@ -177,24 +234,33 @@ class PublicEvent(EventParser):
         pass
 
 
-class PullRequestEvent(EventParser):
+class PullRequestEventParser(EventParser):
     def __init__(self, data, idx):
-        super(PullRequestEvent, self).__init__(data, idx)
+        super(PullRequestEventParser, self).__init__(data, idx)
         self.type = "PullRequestEvent"
 
     def parse(self):
-        pass
+        self.repo_id = self.data['repo']['id']
+        self.repo_name = self.data['repo']['name']
+        self.message = self.data['payload']['pull_request']['body']
+        self.created_at = self.data['created_at']
 
     def to_dict(self):
-        pass
+        data = []
+        d_global = {
+            "repo_id": self.repo_id,
+            "repo_name": self.repo_name,
+            "message": self.message,
+            "created_at": self.created_at
+        }
+        data.append(d_global)
+        return data
 
-        pass
 
-
-class PullRequestReviewCommentEvent(EventParser):
+class PullRequestReviewCommentEventParser(EventParser):
     def __init__(self, data, idx):
-        super(PullRequestReviewCommentEvent, self).__init__(data, idx)
-        self.type = "PullRequestReviewCommentEvent"
+        super(PullRequestReviewCommentEventParser, self).__init__(data, idx)
+        self.type = "PullRequestReviewCommentEventParser"
 
     def parse(self):
         pass
@@ -252,9 +318,9 @@ class PushEventParser(EventParser):
         return processed_commits
 
 
-class ReleaseEvent(EventParser):
+class ReleaseEventParser(EventParser):
     def __init__(self, data, idx):
-        super(ReleaseEvent, self).__init__(data, idx)
+        super(ReleaseEventParser, self).__init__(data, idx)
         self.type = "ReleaseEvent"
 
     def parse(self):
@@ -264,9 +330,9 @@ class ReleaseEvent(EventParser):
         pass
 
 
-class WatchEvent(EventParser):
+class WatchEventParser(EventParser):
     def __init__(self, data, idx):
-        super(WatchEvent, self).__init__(data, idx)
+        super(WatchEventParser, self).__init__(data, idx)
         self.type = "WatchEvent"
 
     def parse(self):
